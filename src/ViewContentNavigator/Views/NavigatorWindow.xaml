@@ -1,0 +1,171 @@
+<Window x:Class="ViewContentNavigator.Views.NavigatorWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:conv="clr-namespace:ViewContentNavigator.Views.Converters"
+        Title="Элементы вида"
+        Width="360" Height="640"
+        MinWidth="320" MinHeight="420"
+        WindowStartupLocation="CenterOwner"
+        ShowInTaskbar="False"
+        SnapsToDevicePixels="True"
+        UseLayoutRounding="True"
+        FontFamily="Segoe UI" FontSize="12">
+
+    <Window.Resources>
+        <conv:ColorToBrushConverter x:Key="ColorToBrush" />
+        <conv:BoolToVisibilityConverter x:Key="BoolToVis" />
+
+        <HierarchicalDataTemplate x:Key="NodeTemplate" ItemsSource="{Binding Children}">
+            <StackPanel Orientation="Horizontal" VerticalAlignment="Center">
+                <CheckBox VerticalAlignment="Center"
+                          IsThreeState="False"
+                          IsChecked="{Binding IsChecked, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                          ToolTip="Показать / скрыть в виде" />
+
+                <Border Width="13" Height="13" Margin="4,0,0,0"
+                        VerticalAlignment="Center"
+                        BorderThickness="1" BorderBrush="#FF9AA0A6"
+                        Background="{Binding Color, Converter={StaticResource ColorToBrush}}">
+                    <Border.Style>
+                        <Style TargetType="Border">
+                            <Setter Property="Opacity" Value="1" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasColor}" Value="False">
+                                    <Setter Property="Background" Value="Transparent" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </Border>
+                </Border>
+
+                <TextBlock Text="{Binding Name}" Margin="6,0,0,0" VerticalAlignment="Center" />
+                <TextBlock Text="{Binding Count, StringFormat=' ({0})'}"
+                           Margin="2,0,0,0" VerticalAlignment="Center"
+                           Foreground="#FF6B7075" />
+            </StackPanel>
+        </HierarchicalDataTemplate>
+
+        <Style x:Key="ToolButton" TargetType="Button">
+            <Setter Property="Padding" Value="10,4" />
+            <Setter Property="Margin" Value="0,0,4,0" />
+            <Setter Property="MinWidth" Value="64" />
+        </Style>
+    </Window.Resources>
+
+    <DockPanel Margin="8">
+
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock VerticalAlignment="Center" TextTrimming="CharacterEllipsis">
+                <Run Text="Вид: " FontWeight="SemiBold" />
+                <Run Text="{Binding ViewName, Mode=OneWay}" />
+            </TextBlock>
+            <Button Grid.Column="1" Content="Обновить"
+                    Command="{Binding RefreshCommand}"
+                    Padding="10,3" />
+        </Grid>
+
+        <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="Фильтр" VerticalAlignment="Center" Margin="0,0,6,0" />
+            <TextBox Grid.Column="1"
+                     Text="{Binding Filter, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Delay=150}"
+                     VerticalContentAlignment="Center" />
+            <Button Grid.Column="2" Content="✕" Width="24" Margin="4,0,0,0"
+                    ToolTip="Очистить фильтр"
+                    Command="{Binding ClearFilterCommand}" />
+        </Grid>
+
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+            <Button Content="Скрыть"      Style="{StaticResource ToolButton}" Command="{Binding HideCommand}" />
+            <Button Content="Показать"    Style="{StaticResource ToolButton}" Command="{Binding ShowCommand}" />
+            <Button Content="Цвет"        Style="{StaticResource ToolButton}" Command="{Binding ApplyColorCommand}" />
+            <Button Content="Сброс цвета" Style="{StaticResource ToolButton}" Command="{Binding ResetColorCommand}" MinWidth="80" />
+            <Button Content="Сбросить всё" Style="{StaticResource ToolButton}" Command="{Binding ResetAllCommand}"
+                    MinWidth="90" ToolTip="Показать все элементы и снять все цветовые переопределения на виде" />
+        </WrapPanel>
+
+        <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
+            <CheckBox Content="Экземпляры" IsChecked="{Binding ShowInstances, Mode=TwoWay}"
+                      VerticalAlignment="Center" Margin="0,0,12,0"
+                      ToolTip="Показывать отдельные экземпляры под семействами" />
+            <CheckBox Content="Авто" IsChecked="{Binding AutoApply, Mode=TwoWay}"
+                      VerticalAlignment="Center"
+                      ToolTip="Применять изменения к виду сразу («на лету»)" />
+        </StackPanel>
+
+        <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+            <TextBlock Text="Цвет" VerticalAlignment="Center" Margin="0,0,6,0" DockPanel.Dock="Left" />
+            <Button DockPanel.Dock="Right" Content="…" Width="26" Margin="4,0,0,0"
+                    ToolTip="Выбрать произвольный цвет"
+                    Command="{Binding PickColorCommand}" />
+            <ItemsControl ItemsSource="{Binding Palette}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <WrapPanel Orientation="Horizontal" />
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <Button Width="18" Height="18" Margin="2"
+                                ToolTip="{Binding Name}"
+                                Command="{Binding DataContext.ApplyColorCommand, RelativeSource={RelativeSource AncestorType=Window}}"
+                                CommandParameter="{Binding}"
+                                Background="{Binding Converter={StaticResource ColorToBrush}}"
+                                BorderBrush="#FF9AA0A6" BorderThickness="1" />
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+        </DockPanel>
+
+        <Grid DockPanel.Dock="Bottom" Margin="0,6,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            <TextBlock Text="{Binding StatusText}" TextTrimming="CharacterEllipsis"
+                       Foreground="#FF44494E" VerticalAlignment="Center" />
+            <StackPanel Grid.Column="1" Orientation="Horizontal">
+                <TextBlock Text="{Binding HiddenCount, StringFormat='скрыто: {0}'}"
+                           Foreground="#FF6B7075" Margin="0,0,10,0" />
+                <TextBlock Text="{Binding ShownCount, StringFormat='показано: {0}'}"
+                           Foreground="#FF6B7075" />
+            </StackPanel>
+        </Grid>
+
+        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                    HorizontalAlignment="Right" Margin="0,6,0,0">
+            <Button Content="Сохранить настройки" Padding="10,4" Margin="0,0,6,0"
+                    Command="{Binding SaveSettingsCommand}" />
+            <Button Content="Сохранить вид" Padding="10,4"
+                    Command="{Binding SaveViewCommand}" />
+        </StackPanel>
+
+        <Border BorderBrush="#FFCBD0D5" BorderThickness="1">
+            <TreeView x:Name="Tree"
+                      ItemsSource="{Binding Categories}"
+                      ItemTemplate="{StaticResource NodeTemplate}"
+                      BorderThickness="0"
+                      VirtualizingStackPanel.IsVirtualizing="True"
+                      VirtualizingStackPanel.VirtualizationMode="Recycling"
+                      ScrollViewer.HorizontalScrollBarVisibility="Auto">
+                <TreeView.ItemContainerStyle>
+                    <Style TargetType="TreeViewItem">
+                        <Setter Property="IsExpanded" Value="{Binding IsExpanded, Mode=TwoWay}" />
+                        <Setter Property="IsSelected" Value="{Binding IsSelected, Mode=TwoWay}" />
+                        <Setter Property="Visibility"
+                                Value="{Binding IsVisibleInTree, Converter={StaticResource BoolToVis}}" />
+                    </Style>
+                </TreeView.ItemContainerStyle>
+            </TreeView>
+        </Border>
+
+    </DockPanel>
+</Window>

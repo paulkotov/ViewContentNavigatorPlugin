@@ -1,0 +1,62 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <UseWPF>true</UseWPF>
+    <UseWindowsForms>true</UseWindowsForms>
+    <OutputType>Library</OutputType>
+    <RootNamespace>ViewContentNavigator</RootNamespace>
+    <AssemblyName>ViewContentNavigator</AssemblyName>
+    <GenerateAssemblyInfo>true</GenerateAssemblyInfo>
+    <AppendTargetFrameworkToOutputPath>false</AppendTargetFrameworkToOutputPath>
+    <Deterministic>true</Deterministic>
+    <CopyLocalLockFileAssemblies>false</CopyLocalLockFileAssemblies>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Reference Include="RevitAPI">
+      <HintPath>$(RevitApiDir)\RevitAPI.dll</HintPath>
+      <Private>false</Private>
+      <SpecificVersion>false</SpecificVersion>
+    </Reference>
+    <Reference Include="RevitAPIUI">
+      <HintPath>$(RevitApiDir)\RevitAPIUI.dll</HintPath>
+      <Private>false</Private>
+      <SpecificVersion>false</SpecificVersion>
+    </Reference>
+    <Reference Include="AdWindows">
+      <HintPath>$(RevitApiDir)\AdWindows.dll</HintPath>
+      <Private>false</Private>
+      <SpecificVersion>false</SpecificVersion>
+    </Reference>
+    <Reference Include="UIFramework">
+      <HintPath>$(RevitApiDir)\UIFramework.dll</HintPath>
+      <Private>false</Private>
+      <SpecificVersion>false</SpecificVersion>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="System.Web.Extensions" />
+    <Reference Include="PresentationCore" />
+    <Reference Include="PresentationFramework" />
+    <Reference Include="WindowsBase" />
+    <Reference Include="System.Xaml" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="ViewContentNavigator.addin">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
+  <Target Name="DeployAddin" AfterTargets="Build" Condition="'$(DeployToRevit)' == 'true'">
+    <PropertyGroup>
+      <RevitAddinsDir>$(AppData)\Autodesk\Revit\Addins\$(RevitVersion)</RevitAddinsDir>
+    </PropertyGroup>
+    <MakeDir Directories="$(RevitAddinsDir)\ViewContentNavigator" />
+    <Copy SourceFiles="$(TargetPath)" DestinationFolder="$(RevitAddinsDir)\ViewContentNavigator" />
+    <Copy SourceFiles="$(TargetDir)ViewContentNavigator.pdb" DestinationFolder="$(RevitAddinsDir)\ViewContentNavigator" Condition="Exists('$(TargetDir)ViewContentNavigator.pdb')" />
+    <Copy SourceFiles="$(TargetDir)ViewContentNavigator.addin" DestinationFolder="$(RevitAddinsDir)" />
+  </Target>
+
+</Project>
