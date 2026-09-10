@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RevitAddIns>
+  <AddIn Type="Application">
+    <Name>View Content Navigator</Name>
+    <Assembly>ViewContentNavigator\ViewContentNavigator.dll</Assembly>
+    <AddInId>94C410DC-63D3-4A4D-9666-46BB2A9007EF</AddInId>
+    <FullClassName>ViewContentNavigator.Application.NavigatorApplication</FullClassName>
+    <VendorId>MY.VCN</VendorId>
+    <VendorDescription>My — View Content Navigator</VendorDescription>
+  </AddIn>
+</RevitAddIns>
