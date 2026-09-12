@@ -9,5 +9,7 @@ namespace ViewContentNavigator.ViewModels
         void RequestVisibility(TreeNodeViewModel node, bool visible);
 
         void RequestColor(TreeNodeViewModel node, Color? color);
+
+        void RequestOpacity(TreeNodeViewModel node, int opacity);
     }
 }

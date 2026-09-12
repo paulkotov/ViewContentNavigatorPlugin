@@ -18,7 +18,6 @@ namespace ViewContentNavigator.ViewModels
     {
         private readonly IRevitTask _revitTask;
         private readonly IViewContentService _service;
-        private readonly IDocumentSettingsStore _store;
         private readonly Document _doc;
         private readonly string _documentTitle;
 
@@ -27,6 +26,7 @@ namespace ViewContentNavigator.ViewModels
         private bool _suppress;
 
         private string _viewName;
+        private string _viewNameInput;
         private string _filter = string.Empty;
         private bool _showInstances;
         private bool _autoApply = true;
@@ -40,19 +40,17 @@ namespace ViewContentNavigator.ViewModels
         public NavigatorViewModel(
             IRevitTask revitTask,
             IViewContentService service,
-            IDocumentSettingsStore store,
             Document doc,
             View3D view,
-            ViewSnapshot snapshot,
-            NavigatorSettings savedSettings)
+            ViewSnapshot snapshot)
         {
             _revitTask = revitTask;
             _service = service;
-            _store = store;
             _doc = doc;
             _documentTitle = doc.Title;
             _viewId = view.Id;
             _viewName = snapshot.ViewName;
+            _viewNameInput = snapshot.ViewName;
 
             Categories = new ObservableCollection<CategoryNodeViewModel>(
                 snapshot.Categories.Select(c => new CategoryNodeViewModel(this, c)));
@@ -67,16 +65,18 @@ namespace ViewContentNavigator.ViewModels
             PickColorCommand = new RelayCommand(_ => PickCustomColor(), _ => SelectedNode != null);
             ResetColorCommand = new RelayCommand(_ => ResetSelectedColor(), _ => SelectedNode != null);
             ResetAllCommand = new AsyncRelayCommand(ResetAllAsync, () => Categories.Count > 0);
-            SaveSettingsCommand = new AsyncRelayCommand(SaveSettingsAsync);
-            SaveViewCommand = new AsyncRelayCommand(SaveViewAsync);
+            SaveViewAsCommand = new AsyncRelayCommand(
+                SaveViewAsAsync,
+                () => !string.IsNullOrWhiteSpace(ViewNameInput));
             ClearFilterCommand = new RelayCommand(_ => Filter = string.Empty);
+            ExpandAllCommand = new RelayCommand(_ => ExpandCollapseAll(true));
+            CollapseAllCommand = new RelayCommand(_ => ExpandCollapseAll(false));
+            SelectAllCommand = new RelayCommand(_ => SelectDeselectAll(true));
+            DeselectAllCommand = new RelayCommand(_ => SelectDeselectAll(false));
 
-            if (savedSettings != null)
-            {
-                ApplySavedSettings(savedSettings);
-                _ = SyncViewWithTreeAsync();
-            }
-
+            // Новый временный вид всегда открывается в исходном состоянии:
+            // все элементы видимы (все чекбоксы включены). Прошлые выборы
+            // намеренно не восстанавливаются.
             UpdateStatus();
         }
 
@@ -87,6 +87,14 @@ namespace ViewContentNavigator.ViewModels
         {
             get => _viewName;
             private set => SetProperty(ref _viewName, value);
+        }
+
+        // Редактируемое имя, под которым будет сохранён вид. По умолчанию —
+        // временное имя вида навигатора.
+        public string ViewNameInput
+        {
+            get => _viewNameInput;
+            set => SetProperty(ref _viewNameInput, value);
         }
 
         public string Filter
@@ -121,7 +129,14 @@ namespace ViewContentNavigator.ViewModels
         public bool AutoApply
         {
             get => _autoApply;
-            set => SetProperty(ref _autoApply, value);
+            set
+            {
+                if (SetProperty(ref _autoApply, value) && value)
+                {
+                    // Включили «Авто» — сразу применяем накопленное состояние дерева к виду.
+                    _ = SyncViewWithTreeAsync();
+                }
+            }
         }
 
         public bool IsBusy
@@ -174,9 +189,12 @@ namespace ViewContentNavigator.ViewModels
         public RelayCommand PickColorCommand { get; }
         public RelayCommand ResetColorCommand { get; }
         public AsyncRelayCommand ResetAllCommand { get; }
-        public AsyncRelayCommand SaveSettingsCommand { get; }
-        public AsyncRelayCommand SaveViewCommand { get; }
+        public AsyncRelayCommand SaveViewAsCommand { get; }
         public RelayCommand ClearFilterCommand { get; }
+        public RelayCommand ExpandAllCommand { get; }
+        public RelayCommand CollapseAllCommand { get; }
+        public RelayCommand SelectAllCommand { get; }
+        public RelayCommand DeselectAllCommand { get; }
 
         bool INodeChangeSink.SuppressNotifications => _suppress;
 
@@ -199,13 +217,25 @@ namespace ViewContentNavigator.ViewModels
                 _ = PushResetColorAsync(node);
         }
 
+        void INodeChangeSink.RequestOpacity(TreeNodeViewModel node, int opacity)
+        {
+            if (AutoApply)
+                _ = PushOpacityAsync(node, opacity);
+            else
+                UpdateStatus();
+        }
+
         private void ApplySelected(bool visible)
         {
             var node = SelectedNode;
             if (node == null) return;
 
             node.SetCheckedSilently(visible);
-            _ = PushVisibilityAsync(node, visible);
+
+            if (AutoApply)
+                _ = PushVisibilityAsync(node, visible);
+            else
+                UpdateStatus();
         }
 
         private void OnApplyColor(object parameter)
@@ -220,7 +250,9 @@ namespace ViewContentNavigator.ViewModels
             var media = palette.ToMediaColor();
 
             node.SetColorSilently(media);
-            _ = PushColorAsync(node, media);
+
+            if (AutoApply)
+                _ = PushColorAsync(node, media);
         }
 
         private void PickCustomColor()
@@ -238,7 +270,9 @@ namespace ViewContentNavigator.ViewModels
 
                 var media = MediaColor.FromRgb(dialog.Color.R, dialog.Color.G, dialog.Color.B);
                 node.SetColorSilently(media);
-                _ = PushColorAsync(node, media);
+
+                if (AutoApply)
+                    _ = PushColorAsync(node, media);
             }
         }
 
@@ -248,7 +282,9 @@ namespace ViewContentNavigator.ViewModels
             if (node == null) return;
 
             node.SetColorSilently(null);
-            _ = PushResetColorAsync(node);
+
+            if (AutoApply)
+                _ = PushResetColorAsync(node);
         }
 
         private async Task ResetAllAsync()
@@ -269,6 +305,7 @@ namespace ViewContentNavigator.ViewModels
                 {
                     category.SetCheckedSilently(true);
                     category.SetColorSilently(null);
+                    category.SetOpacitySilently(100);
                 }
             });
 
@@ -307,31 +344,6 @@ namespace ViewContentNavigator.ViewModels
             UpdateStatus();
         }
 
-        private async Task SaveSettingsAsync()
-        {
-            var settings = BuildSettings();
-
-            await _revitTask.Run(app => _store.Save(_doc, settings));
-        }
-
-        private async Task SaveViewAsync()
-        {
-            var name = $"Навигатор видимости — {_documentTitle}";
-            var settings = BuildSettings();
-
-            await _revitTask.Run(app =>
-            {
-                var view = ResolveView();
-                if (view != null)
-                    _service.SaveView(_doc, view, name);
-
-                _store.Save(_doc, settings);
-            });
-
-            _viewSaved = true;
-            ViewName = name;
-        }
-
         private async Task PushVisibilityAsync(TreeNodeViewModel node, bool visible)
         {
             var ids = node.ElementIds;
@@ -367,6 +379,17 @@ namespace ViewContentNavigator.ViewModels
             });
         }
 
+        private async Task PushOpacityAsync(TreeNodeViewModel node, int opacity)
+        {
+            var ids = node.ElementIds;
+            await _revitTask.Run(app =>
+            {
+                var view = ResolveView();
+                if (view != null)
+                    _service.SetOpacity(_doc, view, ids, opacity);
+            });
+        }
+
         private Task SyncViewWithTreeAsync()
         {
             var states = new List<NodeState>();
@@ -377,13 +400,13 @@ namespace ViewContentNavigator.ViewModels
                     foreach (var instance in family.BuiltInstances)
                     {
                         var instColor = instance.Color.HasValue ? ColorMapper.ToRevit(instance.Color.Value) : null;
-                        states.Add(new NodeState(instance.ElementIds, instance.IsChecked != false, instColor));
+                        states.Add(new NodeState(instance.ElementIds, instance.IsChecked != false, instColor, instance.Opacity));
                     }
                 }
                 else
                 {
                     var color = family.Color.HasValue ? ColorMapper.ToRevit(family.Color.Value) : null;
-                    states.Add(new NodeState(family.ElementIds, family.IsChecked != false, color));
+                    states.Add(new NodeState(family.ElementIds, family.IsChecked != false, color, family.Opacity));
                 }
             }
 
@@ -412,6 +435,7 @@ namespace ViewContentNavigator.ViewModels
 
                     if (cs.Color != null && cs.Color.HasValue)
                         categoryNode.SetColorSilently(ColorMapper.ToMedia(cs.Color));
+                    categoryNode.SetOpacitySilently(cs.Opacity);
 
                     var familiesByName = GroupUnique(categoryNode.Families, f => f.Name);
                     foreach (var fs in cs.Families)
@@ -422,6 +446,7 @@ namespace ViewContentNavigator.ViewModels
                         familyNode.SetCheckedSilently(fs.Visible);
                         if (fs.Color != null && fs.Color.HasValue)
                             familyNode.SetColorSilently(ColorMapper.ToMedia(fs.Color));
+                        familyNode.SetOpacitySilently(fs.Opacity);
 
                         if (fs.Instances != null && fs.Instances.Count > 0)
                         {
@@ -435,6 +460,7 @@ namespace ViewContentNavigator.ViewModels
                                 instanceNode.SetCheckedSilently(isetting.Visible);
                                 if (isetting.Color != null && isetting.Color.HasValue)
                                     instanceNode.SetColorSilently(ColorMapper.ToMedia(isetting.Color));
+                                instanceNode.SetOpacitySilently(isetting.Opacity);
                             }
                         }
                     }
@@ -466,7 +492,8 @@ namespace ViewContentNavigator.ViewModels
                 {
                     Name = category.Name,
                     Visible = category.IsChecked != false,
-                    Color = ColorMapper.ToSerializable(category.Color)
+                    Color = ColorMapper.ToSerializable(category.Color),
+                    Opacity = category.Opacity
                 };
 
                 foreach (var family in category.Families)
@@ -475,21 +502,23 @@ namespace ViewContentNavigator.ViewModels
                     {
                         Name = family.Name,
                         Visible = family.IsChecked != false,
-                        Color = ColorMapper.ToSerializable(family.Color)
+                        Color = ColorMapper.ToSerializable(family.Color),
+                        Opacity = family.Opacity
                     };
 
                     if (family.BuiltInstances != null)
                     {
                         foreach (var instance in family.BuiltInstances)
                         {
-                            if (instance.IsChecked != false && !instance.HasColor)
+                            if (instance.IsChecked != false && !instance.HasColor && !instance.HasCustomOpacity)
                                 continue;
 
                             fs.Instances.Add(new InstanceSetting
                             {
                                 Id = instance.ElementIdValue,
                                 Visible = instance.IsChecked != false,
-                                Color = ColorMapper.ToSerializable(instance.Color)
+                                Color = ColorMapper.ToSerializable(instance.Color),
+                                Opacity = instance.Opacity
                             });
                         }
                     }
@@ -584,13 +613,77 @@ namespace ViewContentNavigator.ViewModels
             }
         }
 
-        public void OnWindowClosing()
+        private void ExpandCollapseAll(bool expand)
         {
-            if (_viewSaved)
+            RunSuppressed(() =>
+            {
+                foreach (var category in Categories)
+                    category.IsExpanded = expand;
+            });
+        }
+
+        private void SelectDeselectAll(bool select)
+        {
+            RunSuppressed(() =>
+            {
+                foreach (var category in Categories)
+                {
+                    category.SetCheckedSilently(select);
+                    foreach (var family in category.Families)
+                    {
+                        family.SetCheckedSilently(select);
+                        if (family.BuiltInstances != null)
+                            foreach (var instance in family.BuiltInstances)
+                                instance.SetCheckedSilently(select);
+                    }
+                }
+            });
+
+            if (AutoApply)
+                _ = SyncViewWithTreeAsync();
+
+            UpdateStatus();
+        }
+
+        private async Task SaveViewAsAsync()
+        {
+            var name = (ViewNameInput ?? string.Empty).Trim();
+            if (string.IsNullOrWhiteSpace(name))
+                return;
+
+            await _revitTask.Run(app =>
+            {
+                var view = ResolveView();
+                if (view != null)
+                    _service.SaveView(_doc, view, name);
+            });
+
+            // Вид сохранён под заданным именем — при закрытии окна подтверждение
+            // спрашивать не нужно (ShouldPromptOnClose станет false).
+            _viewSaved = true;
+            ViewName = name;
+            ViewNameInput = name;
+        }
+
+        // Нужно ли спрашивать пользователя при закрытии окна: только если вид ещё
+        // существует и не был сохранён.
+        public bool ShouldPromptOnClose =>
+            !_viewSaved
+            && _viewId != null
+            && _viewId.IntegerValue != ElementId.InvalidElementId.IntegerValue;
+
+        public void DeleteTemporaryView()
+        {
+            if (!ShouldPromptOnClose)
                 return;
 
             var viewId = _viewId;
-            _ = _revitTask.Run(app => _service.DeleteView(_doc, viewId));
+
+            // ВАЖНО: не блокируем поток через .Wait() — окно закрывается на главном
+            // потоке Revit, а ExternalEvent выполняется на нём же. Блокировка привела бы
+            // к дедлоку. Просто ставим задачу в очередь — она выполнится, когда Revit
+            // освободит главный поток (сразу после закрытия окна).
+            _ = _revitTask.Run(app => _service.DeleteView(app, viewId));
         }
     }
 }

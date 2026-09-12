@@ -16,6 +16,7 @@ namespace ViewContentNavigator.Models
         public string Name { get; set; }
         public bool Visible { get; set; } = true;
         public SerializableColor Color { get; set; }
+        public int Opacity { get; set; } = 100;
         public List<FamilySetting> Families { get; set; } = new List<FamilySetting>();
     }
 
@@ -24,6 +25,7 @@ namespace ViewContentNavigator.Models
         public string Name { get; set; }
         public bool Visible { get; set; } = true;
         public SerializableColor Color { get; set; }
+        public int Opacity { get; set; } = 100;
 
         public List<InstanceSetting> Instances { get; set; } = new List<InstanceSetting>();
     }
@@ -33,6 +35,7 @@ namespace ViewContentNavigator.Models
         public int Id { get; set; }
         public bool Visible { get; set; } = true;
         public SerializableColor Color { get; set; }
+        public int Opacity { get; set; } = 100;
     }
 
     public sealed class SerializableColor

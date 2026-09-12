@@ -37,15 +37,13 @@ namespace ViewContentNavigator.Commands
                 var doc = uiDoc.Document;
 
                 IViewContentService service = new ViewContentService();
-                IDocumentSettingsStore store = new ExtensibleStorageSettingsStore();
                 IRevitTask revitTask = new RevitTask();
 
                 var view = service.CreateNavigatorView(doc);
                 uiDoc.ActiveView = view;
 
                 var snapshot = service.Scan(doc, view);
-                var savedSettings = store.Load(doc);
-                var viewModel = new NavigatorViewModel(revitTask, service, store, doc, view, snapshot, savedSettings);
+                var viewModel = new NavigatorViewModel(revitTask, service, doc, view, snapshot);
 
                 _window = new NavigatorWindow(viewModel);
                 new WindowInteropHelper(_window) { Owner = uiApp.MainWindowHandle };

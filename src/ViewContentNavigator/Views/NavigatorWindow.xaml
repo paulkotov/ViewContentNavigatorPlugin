@@ -35,8 +35,82 @@
                                 </DataTrigger>
                             </Style.Triggers>
                         </Style>
-                    </Border>
+                    </Border.Style>
                 </Border>
+
+                <ToggleButton Margin="2,0,0,0" Width="16" Height="14" Padding="0"
+                              FontSize="9" VerticalAlignment="Center"
+                              IsChecked="{Binding IsOpacityEditorOpen, Mode=TwoWay}"
+                              ToolTip="Прозрачность (Opacity)">
+                    <ToggleButton.Style>
+                        <Style TargetType="ToggleButton">
+                            <Setter Property="Content" Value="%" />
+                            <Setter Property="Foreground" Value="#FF6B7075" />
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding HasCustomOpacity}" Value="True">
+                                    <Setter Property="Foreground" Value="#FF1E8FE8" />
+                                    <Setter Property="FontWeight" Value="SemiBold" />
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </ToggleButton.Style>
+                </ToggleButton>
+
+                <Popup IsOpen="{Binding IsOpacityEditorOpen, Mode=TwoWay}"
+                       Placement="Bottom"
+                       StaysOpen="False"
+                       AllowsTransparency="True"
+                       PopupAnimation="Fade">
+                    <Border Background="#FFFFFFFF"
+                            BorderBrush="#FF9AA0A6"
+                            BorderThickness="1"
+                            Padding="12,10"
+                            Width="200"
+                            SnapsToDevicePixels="True">
+                        <Border.Effect>
+                            <DropShadowEffect BlurRadius="8" ShadowDepth="2" Opacity="0.25" />
+                        </Border.Effect>
+                        <StackPanel>
+                            <TextBlock Text="Opacity"
+                                       FontWeight="SemiBold"
+                                       FontSize="12"
+                                       Foreground="#FF222222"
+                                       Margin="0,0,0,6" />
+
+                            <Slider Minimum="0"
+                                    Maximum="100"
+                                    TickFrequency="25"
+                                    TickPlacement="BottomRight"
+                                    AutoToolTipPlacement="TopLeft"
+                                    AutoToolTipPrecision="0"
+                                    Value="{Binding Opacity, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged, Delay=200}" />
+
+                            <Grid Margin="0,2,0,0">
+                                <Grid.ColumnDefinitions>
+                                    <ColumnDefinition Width="*" />
+                                    <ColumnDefinition Width="Auto" />
+                                    <ColumnDefinition Width="*" />
+                                </Grid.ColumnDefinitions>
+                                <TextBlock Grid.Column="0"
+                                           Text="0%"
+                                           FontSize="11"
+                                           Foreground="#FF6B7075"
+                                           HorizontalAlignment="Left" />
+                                <TextBlock Grid.Column="1"
+                                           Text="{Binding Opacity, StringFormat={}{0}%}"
+                                           FontSize="11"
+                                           FontWeight="SemiBold"
+                                           Foreground="#FF1E8FE8"
+                                           HorizontalAlignment="Center" />
+                                <TextBlock Grid.Column="2"
+                                           Text="100%"
+                                           FontSize="11"
+                                           Foreground="#FF6B7075"
+                                           HorizontalAlignment="Right" />
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+                </Popup>
 
                 <TextBlock Text="{Binding Name}" Margin="6,0,0,0" VerticalAlignment="Center" />
                 <TextBlock Text="{Binding Count, StringFormat=' ({0})'}"
@@ -65,7 +139,8 @@
             </TextBlock>
             <Button Grid.Column="1" Content="Обновить"
                     Command="{Binding RefreshCommand}"
-                    Padding="10,3" />
+                    Padding="10,3"
+                    ToolTip="Пересканировать вид и применить текущие настройки видимости/цвета к модели" />
         </Grid>
 
         <Grid DockPanel.Dock="Top" Margin="0,0,0,6">
@@ -83,14 +158,6 @@
                     Command="{Binding ClearFilterCommand}" />
         </Grid>
 
-        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,6">
-            <Button Content="Скрыть"      Style="{StaticResource ToolButton}" Command="{Binding HideCommand}" />
-            <Button Content="Показать"    Style="{StaticResource ToolButton}" Command="{Binding ShowCommand}" />
-            <Button Content="Цвет"        Style="{StaticResource ToolButton}" Command="{Binding ApplyColorCommand}" />
-            <Button Content="Сброс цвета" Style="{StaticResource ToolButton}" Command="{Binding ResetColorCommand}" MinWidth="80" />
-            <Button Content="Сбросить всё" Style="{StaticResource ToolButton}" Command="{Binding ResetAllCommand}"
-                    MinWidth="90" ToolTip="Показать все элементы и снять все цветовые переопределения на виде" />
-        </WrapPanel>
 
         <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Margin="0,0,0,6">
             <CheckBox Content="Экземпляры" IsChecked="{Binding ShowInstances, Mode=TwoWay}"
@@ -98,8 +165,15 @@
                       ToolTip="Показывать отдельные экземпляры под семействами" />
             <CheckBox Content="Авто" IsChecked="{Binding AutoApply, Mode=TwoWay}"
                       VerticalAlignment="Center"
-                      ToolTip="Применять изменения к виду сразу («на лету»)" />
+                      ToolTip="Применять изменения к виду сразу («на лету»). Если выключено — изменения применяются только по кнопке «Обновить»." />
         </StackPanel>
+
+        <WrapPanel DockPanel.Dock="Top" Margin="0,0,0,6">
+            <Button Content="Развернуть" Style="{StaticResource ToolButton}" Command="{Binding ExpandAllCommand}" />
+            <Button Content="Свернуть" Style="{StaticResource ToolButton}" Command="{Binding CollapseAllCommand}" />
+            <Button Content="Выбрать все" Style="{StaticResource ToolButton}" Command="{Binding SelectAllCommand}" />
+            <Button Content="Отключить все" Style="{StaticResource ToolButton}" Command="{Binding DeselectAllCommand}" MinWidth="80" />
+        </WrapPanel>
 
         <DockPanel DockPanel.Dock="Top" Margin="0,0,0,6">
             <TextBlock Text="Цвет" VerticalAlignment="Center" Margin="0,0,6,0" DockPanel.Dock="Left" />
@@ -140,13 +214,13 @@
             </StackPanel>
         </Grid>
 
-        <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
-                    HorizontalAlignment="Right" Margin="0,6,0,0">
-            <Button Content="Сохранить настройки" Padding="10,4" Margin="0,0,6,0"
-                    Command="{Binding SaveSettingsCommand}" />
-            <Button Content="Сохранить вид" Padding="10,4"
-                    Command="{Binding SaveViewCommand}" />
-        </StackPanel>
+        <DockPanel DockPanel.Dock="Bottom" Margin="0,6,0,0">
+            <Button DockPanel.Dock="Right" Content="Сохранить как" Padding="10,4" Margin="6,0,0,0"
+                    Command="{Binding SaveViewAsCommand}" />
+            <TextBox Text="{Binding ViewNameInput, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     VerticalContentAlignment="Center"
+                     ToolTip="Имя, под которым будет сохранён вид" />
+        </DockPanel>
 
         <Border BorderBrush="#FFCBD0D5" BorderThickness="1">
             <TreeView x:Name="Tree"

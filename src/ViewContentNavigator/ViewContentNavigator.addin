@@ -6,6 +6,6 @@
     <AddInId>94C410DC-63D3-4A4D-9666-46BB2A9007EF</AddInId>
     <FullClassName>ViewContentNavigator.Application.NavigatorApplication</FullClassName>
     <VendorId>MY.VCN</VendorId>
-    <VendorDescription>My — View Content Navigator</VendorDescription>
+    <VendorDescription>My — View Content Navigator Plug-in</VendorDescription>
   </AddIn>
 </RevitAddIns>

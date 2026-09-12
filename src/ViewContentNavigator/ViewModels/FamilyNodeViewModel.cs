@@ -34,6 +34,7 @@ namespace ViewContentNavigator.ViewModels
             {
                 var node = new InstanceNodeViewModel(Sink, this, instance);
                 node.SetColorSilently(Color);
+                node.SetOpacitySilently(Opacity);
                 node.SetCheckedSilently(IsChecked ?? true);
                 _instanceNodes.Add(node);
                 Children.Add(node);
