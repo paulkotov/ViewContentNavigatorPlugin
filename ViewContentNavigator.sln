@@ -6,14 +6,14 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ViewContentNavigator", "src
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
-		Debug|x64 = Debug|x64
-		Release|x64 = Release|x64
+		Debug|AnyCPU = Debug|AnyCPU
+		Release|AnyCPU = Release|AnyCPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{94C410DC-63D3-4A4D-9666-46BB2A9007EF}.Debug|x64.ActiveCfg = Debug|x64
-		{94C410DC-63D3-4A4D-9666-46BB2A9007EF}.Debug|x64.Build.0 = Debug|x64
-		{94C410DC-63D3-4A4D-9666-46BB2A9007EF}.Release|x64.ActiveCfg = Release|x64
-		{94C410DC-63D3-4A4D-9666-46BB2A9007EF}.Release|x64.Build.0 = Release|x64
+		{94C410DC-63D3-4A4D-9666-46BB2A9007EF}.Debug|AnyCPU.ActiveCfg = Debug|AnyCPU
+		{94C410DC-63D3-4A4D-9666-46BB2A9007EF}.Debug|AnyCPU.Build.0 = Debug|AnyCPU
+		{94C410DC-63D3-4A4D-9666-46BB2A9007EF}.Release|AnyCPU.ActiveCfg = Release|AnyCPU
+		{94C410DC-63D3-4A4D-9666-46BB2A9007EF}.Release|AnyCPU.Build.0 = Release|AnyCPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

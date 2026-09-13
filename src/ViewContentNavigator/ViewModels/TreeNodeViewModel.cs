@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using Autodesk.Revit.DB;
+using ViewContentNavigator.Models;
 using ViewContentNavigator.Mvvm;
 using MediaColor = System.Windows.Media.Color;
 
@@ -20,6 +21,8 @@ namespace ViewContentNavigator.ViewModels
 
         private bool? _isChecked = true;
         private MediaColor? _color;
+        private int _opacity = 100;
+        private bool _isOpacityEditorOpen;
         private bool _isExpanded;
         private bool _isSelected;
         private bool _isVisibleInTree = true;
@@ -133,6 +136,45 @@ namespace ViewContentNavigator.ViewModels
         }
 
         public void SetColorSilently(MediaColor? value) => SetColorState(value, notify: false, cascade: true);
+
+        /// <summary>0–100, where 100 is fully opaque.</summary>
+        public int Opacity
+        {
+            get => _opacity;
+            set => SetOpacityState(value, notify: !_sink.SuppressNotifications, cascade: true);
+        }
+
+        public bool HasCustomOpacity => _opacity != 100;
+
+        public bool IsOpacityEditorOpen
+        {
+            get => _isOpacityEditorOpen;
+            set => SetProperty(ref _isOpacityEditorOpen, value);
+        }
+
+        private void SetOpacityState(int value, bool notify, bool cascade)
+        {
+            value = NodeState.ClampOpacity(value);
+            var changed = _opacity != value;
+            _opacity = value;
+
+            if (cascade)
+            {
+                foreach (var child in Children)
+                    child.SetOpacityState(value, notify: false, cascade: true);
+            }
+
+            if (changed)
+            {
+                OnPropertyChanged(nameof(Opacity));
+                OnPropertyChanged(nameof(HasCustomOpacity));
+            }
+
+            if (notify)
+                _sink.RequestOpacity(this, value);
+        }
+
+        public void SetOpacitySilently(int value) => SetOpacityState(value, notify: false, cascade: true);
 
         public bool IsExpanded
         {
