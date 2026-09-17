@@ -106,6 +106,11 @@ namespace ViewContentNavigator.ViewModels
             SetCheckedState(value, updateChildren: true, updateParent: true);
         }
 
+        public void SetCheckedSilently(bool value, bool updateParent)
+        {
+            SetCheckedState(value, updateChildren: true, updateParent: updateParent);
+        }
+
         public MediaColor? Color
         {
             get => _color;

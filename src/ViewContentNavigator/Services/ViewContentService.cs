@@ -172,7 +172,7 @@ namespace ViewContentNavigator.Services
             }
         }
 
-        public void DeleteView(UIApplication uiApp, ElementId viewId)
+        public void DeleteView(UIApplication uiApp, ElementId viewId, ElementId restoreViewId)
         {
             if (viewId == null || viewId.IntegerValue == ElementId.InvalidElementId.IntegerValue)
                 return;
@@ -186,11 +186,13 @@ namespace ViewContentNavigator.Services
                 return;
 
             // 1) Если наш временный вид сейчас активен, переключаемся на другой
-            //    отображаемый вид — активный вид удалить нельзя.
+            //    отображаемый вид — активный вид удалить нельзя. Сначала пытаемся
+            //    вернуться к виду, который был активен до открытия навигатора.
             if (uiDoc.ActiveView != null &&
                 uiDoc.ActiveView.Id.IntegerValue == viewId.IntegerValue)
             {
-                var replacement = FindReplacementView(doc, viewId);
+                var replacement = ResolveRestoreView(doc, restoreViewId, viewId)
+                                  ?? FindReplacementView(doc, viewId);
                 if (replacement == null)
                     return; // нет другого вида — безопаснее не удалять
 
@@ -215,6 +217,21 @@ namespace ViewContentNavigator.Services
                 doc.Delete(viewId);
                 tx.Commit();
             }
+        }
+
+        private static View ResolveRestoreView(Document doc, ElementId restoreViewId, ElementId excludeId)
+        {
+            if (restoreViewId == null ||
+                restoreViewId.IntegerValue == ElementId.InvalidElementId.IntegerValue ||
+                restoreViewId.IntegerValue == excludeId.IntegerValue)
+                return null;
+
+            // Вид мог быть удалён/изменён за время работы навигатора — проверяем.
+            return doc.GetElement(restoreViewId) is View view
+                   && !view.IsTemplate
+                   && IsDisplayableView(view)
+                ? view
+                : null;
         }
 
         private static View FindReplacementView(Document doc, ElementId excludeId)
