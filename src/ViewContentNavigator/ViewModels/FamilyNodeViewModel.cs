@@ -35,7 +35,11 @@ namespace ViewContentNavigator.ViewModels
                 var node = new InstanceNodeViewModel(Sink, this, instance);
                 node.SetColorSilently(Color);
                 node.SetOpacitySilently(Opacity);
-                node.SetCheckedSilently(IsChecked ?? true);
+                // Экземпляры наследуют состояние семейства. Не пересчитываем родителя:
+                // на этом шаге узлы ещё не добавлены в Children, и RecalculateCheckState
+                // считал бы состояние по пустому/частичному списку, ломая галочку
+                // семейства (и каскадом — категории) при включении «Экземпляров».
+                node.SetCheckedSilently(IsChecked ?? true, updateParent: false);
                 _instanceNodes.Add(node);
                 Children.Add(node);
             }

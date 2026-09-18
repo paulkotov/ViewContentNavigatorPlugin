@@ -39,11 +39,15 @@ namespace ViewContentNavigator.Commands
                 IViewContentService service = new ViewContentService();
                 IRevitTask revitTask = new RevitTask();
 
+                // Запоминаем вид, который был активен до открытия навигатора,
+                // чтобы вернуться к нему при закрытии без сохранения.
+                var originalViewId = uiDoc.ActiveView?.Id;
+
                 var view = service.CreateNavigatorView(doc);
                 uiDoc.ActiveView = view;
 
                 var snapshot = service.Scan(doc, view);
-                var viewModel = new NavigatorViewModel(revitTask, service, doc, view, snapshot);
+                var viewModel = new NavigatorViewModel(revitTask, service, doc, view, snapshot, originalViewId);
 
                 _window = new NavigatorWindow(viewModel);
                 new WindowInteropHelper(_window) { Owner = uiApp.MainWindowHandle };

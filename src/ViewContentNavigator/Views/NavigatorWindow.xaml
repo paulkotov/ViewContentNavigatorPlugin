@@ -228,7 +228,7 @@
                       ItemTemplate="{StaticResource NodeTemplate}"
                       BorderThickness="0"
                       VirtualizingStackPanel.IsVirtualizing="True"
-                      VirtualizingStackPanel.VirtualizationMode="Recycling"
+                      VirtualizingStackPanel.VirtualizationMode="Standard"
                       ScrollViewer.HorizontalScrollBarVisibility="Auto">
                 <TreeView.ItemContainerStyle>
                     <Style TargetType="TreeViewItem">

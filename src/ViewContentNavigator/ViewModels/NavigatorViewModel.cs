@@ -22,6 +22,7 @@ namespace ViewContentNavigator.ViewModels
         private readonly string _documentTitle;
 
         private ElementId _viewId;
+        private readonly ElementId _originalViewId;
         private bool _viewSaved;
         private bool _suppress;
 
@@ -42,13 +43,15 @@ namespace ViewContentNavigator.ViewModels
             IViewContentService service,
             Document doc,
             View3D view,
-            ViewSnapshot snapshot)
+            ViewSnapshot snapshot,
+            ElementId originalViewId)
         {
             _revitTask = revitTask;
             _service = service;
             _doc = doc;
             _documentTitle = doc.Title;
             _viewId = view.Id;
+            _originalViewId = originalViewId;
             _viewName = snapshot.ViewName;
             _viewNameInput = snapshot.ViewName;
 
@@ -80,7 +83,12 @@ namespace ViewContentNavigator.ViewModels
             UpdateStatus();
         }
 
-        public ObservableCollection<CategoryNodeViewModel> Categories { get; }
+        private ObservableCollection<CategoryNodeViewModel> _categories;
+        public ObservableCollection<CategoryNodeViewModel> Categories
+        {
+            get => _categories;
+            private set => SetProperty(ref _categories, value);
+        }
         public IReadOnlyList<PaletteColor> Palette { get; }
 
         public string ViewName
@@ -326,16 +334,22 @@ namespace ViewContentNavigator.ViewModels
             if (snapshot == null)
                 return;
 
+            var rebuilt = new ObservableCollection<CategoryNodeViewModel>(
+                snapshot.Categories.Select(c => new CategoryNodeViewModel(this, c)));
+
             RunSuppressed(() =>
             {
-                Categories.Clear();
-                foreach (var category in snapshot.Categories)
-                    Categories.Add(new CategoryNodeViewModel(this, category));
-
                 if (_showInstances)
-                    foreach (var family in Categories.SelectMany(c => c.Families))
+                    foreach (var family in rebuilt.SelectMany(c => c.Families))
                         family.EnsureInstancesBuilt();
             });
+
+            // Полностью подменяем коллекцию, а не Clear()+Add() на существующей.
+            // Clear() порождает Reset, при котором WPF переиспользует контейнеры
+            // TreeViewItem, и TwoWay-биндинг CheckBox.IsChecked «протекает» старым
+            // состоянием на новые узлы — отсюда самопроизвольный выбор после «Обновить».
+            // Новый экземпляр коллекции заставляет WPF пересоздать все контейнеры с нуля.
+            Categories = rebuilt;
 
             ViewName = snapshot.ViewName;
             ApplySavedSettings(settings);
@@ -678,12 +692,15 @@ namespace ViewContentNavigator.ViewModels
                 return;
 
             var viewId = _viewId;
+            var restoreViewId = _originalViewId;
 
             // ВАЖНО: не блокируем поток через .Wait() — окно закрывается на главном
             // потоке Revit, а ExternalEvent выполняется на нём же. Блокировка привела бы
             // к дедлоку. Просто ставим задачу в очередь — она выполнится, когда Revit
             // освободит главный поток (сразу после закрытия окна).
-            _ = _revitTask.Run(app => _service.DeleteView(app, viewId));
+            // При удалении временного вида возвращаемся к виду, который был активен
+            // до открытия навигатора.
+            _ = _revitTask.Run(app => _service.DeleteView(app, viewId, restoreViewId));
         }
     }
 }

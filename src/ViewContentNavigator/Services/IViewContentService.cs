@@ -23,6 +23,6 @@ namespace ViewContentNavigator.Services
 
         void SaveView(Document doc, View view, string name);
 
-        void DeleteView(UIApplication uiApp, ElementId viewId);
+        void DeleteView(UIApplication uiApp, ElementId viewId, ElementId restoreViewId);
     }
 }
