@@ -23,6 +23,7 @@ namespace ViewContentNavigator.ViewModels
         private MediaColor? _color;
         private int _opacity = 100;
         private bool _isOpacityEditorOpen;
+        private bool _isColorEditorOpen;
         private bool _isExpanded;
         private bool _isSelected;
         private bool _isVisibleInTree = true;
@@ -33,6 +34,9 @@ namespace ViewContentNavigator.ViewModels
             Parent = parent;
             Name = name;
             Children = new ObservableCollection<TreeNodeViewModel>();
+            ApplyPaletteColorCommand = new RelayCommand(OnApplyPaletteColor);
+            PickCustomColorCommand = new RelayCommand(PickCustomColor);
+            ClearColorCommand = new RelayCommand(ClearColor);
         }
 
         protected INodeChangeSink Sink => _sink;
@@ -157,6 +161,16 @@ namespace ViewContentNavigator.ViewModels
             set => SetProperty(ref _isOpacityEditorOpen, value);
         }
 
+        public bool IsColorEditorOpen
+        {
+            get => _isColorEditorOpen;
+            set => SetProperty(ref _isColorEditorOpen, value);
+        }
+
+        public RelayCommand ApplyPaletteColorCommand { get; }
+        public RelayCommand PickCustomColorCommand { get; }
+        public RelayCommand ClearColorCommand { get; }
+
         private void SetOpacityState(int value, bool notify, bool cascade)
         {
             value = NodeState.ClampOpacity(value);
@@ -180,6 +194,37 @@ namespace ViewContentNavigator.ViewModels
         }
 
         public void SetOpacitySilently(int value) => SetOpacityState(value, notify: false, cascade: true);
+
+        private void OnApplyPaletteColor(object parameter)
+        {
+            if (!(parameter is PaletteColor palette))
+                return;
+
+            Color = palette.ToMediaColor();
+            IsColorEditorOpen = false;
+        }
+
+        private void PickCustomColor()
+        {
+            IsColorEditorOpen = false;
+
+            using (var dialog = new System.Windows.Forms.ColorDialog { FullOpen = true, AnyColor = true })
+            {
+                if (_color.HasValue)
+                    dialog.Color = System.Drawing.Color.FromArgb(_color.Value.R, _color.Value.G, _color.Value.B);
+
+                if (dialog.ShowDialog() != System.Windows.Forms.DialogResult.OK)
+                    return;
+
+                Color = MediaColor.FromRgb(dialog.Color.R, dialog.Color.G, dialog.Color.B);
+            }
+        }
+
+        private void ClearColor()
+        {
+            Color = null;
+            IsColorEditorOpen = false;
+        }
 
         public bool IsExpanded
         {
