@@ -1,26 +1,22 @@
-# View Content Navigator — плагин Revit 2022
+# View Content Navigator — Revit 2022 Plugin
 
-Навигатор по всем категориям и элементам модели Revit. По нажатию кнопки на ленте
-создаётся **временный 3D-вид**, на котором видны все категории и элементы, и открывается
-модальное-независимое (modeless) окно WPF с деревом:
+A navigator for all categories and elements within a Revit model. Clicking the ribbon button creates a **temporary 3D view** that displays all categories and elements, and opens a modeless WPF window with a tree structure:
 
 ```
-Категория Revit
-└── Семейство (present in view)
-    └── Экземпляр            ← опционально (переключатель «Экземпляры»)
+Revit Category
+└── Family (present in view)
+└── Instance            ← optional ("Instances" toggle switch)
 ```
 
-У каждого узла дерева:
+Each tree node features:
 
-- **чекбокс** — скрыть/показать элементы на активном (навигаторском) виде;
-- **цвет** — переопределение графики (проекция + поверхность solid fill) на этом виде.
+- **Checkbox** — hide/show elements in the active (navigator) view.
+- **Color** — override graphics (projection + surface solid fill) in this view.
 
-Все изменения применяются **на лету** (переключатель «Авто») или при нажатии кнопки "Обновить". 
-Есть кнопки `Скрыть`, `Показать`, `Цвет`, `Сброс цвета`, палитра быстрых цветов и произвольный
-выбор цвета (`…`). Настройки (видимость + цвета) и сам вид можно сохранить.
+All changes are applied **on the fly** ("Auto" toggle switch) or by clicking the "Update" button. Features include `Hide`, `Show`, `Color`, and `Reset Color` buttons, a quick color palette, and a custom color picker (`…`). View settings (visibility + colors) and the temporary view itself can be saved.
 
-## Технологии
+## Technologies
 
-- C# / .NET Framework 4.8 (x64) — как во всех Revit 2022–2024.
+- C# / .NET Framework 4.8 (x64) — aligned with Revit 2022–2024 standards.
 - Revit API (`IExternalApplication` + `IExternalCommand`).
-- WPF + **MVVM** без сторонних MVVM-фреймворков.
+- WPF + **MVVM** without third-party MVVM frameworks.
